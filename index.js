@@ -9,7 +9,16 @@ const GRID_COLOR = "#fbf1c7";
 const LINE_HEIGHT = 90.0;
 const LINE_WIDTH = 5.0;
 
+const CROSS_COLOR = "#ff0000";
+const CROSS_WIDTH = 5.0;
+
+const CIRCLE_COLOR = "#00ff00";
+const CIRCLE_WIDTH = 5.0;
+const CIRCLE_RADIUS = 25.0;
+
 let CLICKED_ON = null;
+let CROSS_TURN = true;
+let CIRCLE_TURN = false;
 
 var MATRIX = [
   [0, 0, 0],
@@ -17,38 +26,43 @@ var MATRIX = [
   [0, 0, 0]
 ]
 
-function fillLine(context, x, y, w, h, color) {
+function fillLine(context, x, y, w, h, color, orientation) {
   context.beginPath();
-  context.roundRect(x, y, w, h, [40]);
-  context.fillStyle = color;
-  context.fill();
+  context.strokeStyle = GRID_COLOR;
+  context.lineWidth = LINE_WIDTH;
+  context.moveTo(x, y);
+  if (orientation == "v") {
+    context.lineTo(x, y + h);
+  } else if (orientation == "h") {
+    context.lineTo(x + w, y);
+  }
+  context.stroke();
 }
 
 class TouchBox {
-  constructor(context, startX, startY, borders, identifier) {
+  constructor(startX, startY, borders, identifier) {
     this.startX = startX;
     this.startY = startY;
     this.endX = this.startX + BOX_WIDTH;
     this.endY = this.startY + BOX_HEIGHT;
     this.borders = borders;
     this.identifier = identifier;
-    this.context = context;
   }
 
-  createBorders(color) {
+  createBorders(context, color) {
     for (var i = 0; i < this.borders.length; i++) {
       switch(this.borders[i]) {
         case 't':
-          this.drawTop(color);
+          this.drawTop(context, color);
           break;
         case 'b':
-          this.drawBottom(color);
+          this.drawBottom(context, color);
           break;
         case 'r':
-          this.drawRight(color);
+          this.drawRight(context, color);
           break;
         case 'l':
-          this.drawLeft(color);
+          this.drawLeft(context, color);
           break;
         default:
           throw "Invalid border pattern"
@@ -57,38 +71,63 @@ class TouchBox {
     }
   }
 
-  drawTop(color) {
-    fillLine(this.context, this.startX, this.startY, LINE_HEIGHT, LINE_WIDTH, color);
+  drawTop(context, color) {
+    fillLine(context, this.startX, this.startY, LINE_HEIGHT, LINE_WIDTH, color, "h");
   }
 
-  drawBottom(color) {
-    fillLine(this.context, this.startX, this.endY, LINE_HEIGHT, LINE_WIDTH, color);
+  drawBottom(context, color) {
+    fillLine(context, this.startX, this.endY, LINE_HEIGHT, LINE_WIDTH, color, "h");
   }
 
-  drawRight(color) {
-    fillLine(this.context, this.endX, this.startY, LINE_WIDTH, LINE_HEIGHT, color);
+  drawRight(context, color) {
+    fillLine(context, this.endX, this.startY, LINE_WIDTH, LINE_HEIGHT, color, "v");
   }
 
-  drawLeft(color) {
-    fillLine(this.context, this.startX, this.startY, LINE_WIDTH, LINE_HEIGHT, color);
+  drawLeft(context, color) {
+    fillLine(context, this.startX, this.startY, LINE_WIDTH, LINE_HEIGHT, color, "v");
   }
 
-  drawCross() {
-    // TODO: Draw a proper cross
-    this.context.clearRect(this.startX, this.startY, BOX_WIDTH, BOX_HEIGHT);
-    this.context.fillText("X", (this.startX + this.endX) / 2, (this.startY + this.endY) / 2);
+  drawCross(context) {
+    let x = (this.startX + this.endX) / 2.0 - PADDING / 2;
+    let y = (this.startY + this.endY) / 2.0 - PADDING / 2;
+
+    context.clearRect(this.startX, this.startY, BOX_WIDTH, BOX_HEIGHT);
+    context.strokeStyle = CROSS_COLOR;
+    context.lineWidth = CROSS_WIDTH;
+    context.moveTo(x - 20, y - 20);
+    context.lineTo(x + 20, y + 20);
+
+    context.moveTo(x + 20, y - 20);
+    context.lineTo(x - 20, y + 20);
+    context.stroke();
+
+    CLICKED_ON = null;
   }
 
-  drawCircle() {
-    // TODO: Draw a proper circle
-    this.context.clearRect(this.startX, this.startY, BOX_WIDTH, BOX_HEIGHT);
-    this.context.fillText("O", (this.startX + this.endX) / 2, (this.startY + this.endY) / 2);
+  drawCircle(context) {
+    let x = (this.startX + this.endX) / 2.0 - PADDING / 2;
+    let y = (this.startY + this.endY) / 2.0 - PADDING / 2;
+
+    context.clearRect(this.startX, this.startY, BOX_WIDTH, BOX_HEIGHT);
+    context.strokeStyle = CIRCLE_COLOR;
+    context.lineWidth = CIRCLE_WIDTH;
+    context.beginPath();
+    context.arc(x, y, CIRCLE_RADIUS, 0, 2 * Math.PI);
+    context.stroke();
   }
 
   handleClick() {
     let i = parseInt(this.identifier[0]);
     let j = parseInt(this.identifier[1]);
-    MATRIX[i][j] = 1;
+    if (CROSS_TURN == true && MATRIX[i][j] == 0) {
+      MATRIX[i][j] = 1;
+      CROSS_TURN = false;
+      CIRCLE_TURN = true;
+    } else if (CIRCLE_TURN = true && MATRIX[i][j] == 0) {
+      MATRIX[i][j] = 2;
+      CIRCLE_TURN = false;
+      CROSS_TURN = true;
+    }
     CLICKED_ON = `${i}${j}`;
   }
 
@@ -101,25 +140,29 @@ class TouchBox {
 }
 
 class Grid {
-  constructor(width, height, color) {
+  constructor(width, height) {
     this.width = width;
     this.height = height;
-    this.color = color;
   }
 
   update(dt) {
-    if (CLICKED_ON !== null) {
-      for (let box of this.boxes) {
-        if (CLICKED_ON == box.identifier) {
-          box.drawCross();
-        }
-      }
-      CLICKED_ON = null;
-    }
   }
 
   render(context) {
-    this.createGrid(context);
+    this.createGrid(context, GRID_COLOR);
+    if (CLICKED_ON != null) {
+      let i = parseInt(CLICKED_ON[0]);
+      let j = parseInt(CLICKED_ON[1]);
+      if (CLICKED_ON !== null) {
+        for (let box of this.boxes) {
+          if (CLICKED_ON == box.identifier) {
+            if (MATRIX[i][j] == 1) box.drawCross(context);
+            else if (MATRIX[i][j] == 2) box.drawCircle(context);
+          }
+        }
+        CLICKED_ON = null;
+      }
+    }
   }
 
   drawCross(identifier) {
@@ -130,7 +173,7 @@ class Grid {
     }
   }
 
-  createGrid(context) {
+  createGrid(context, color) {
     this.boxes = new Set();
     const cwidth = context.canvas.width;
     const cheight = context.canvas.height;
@@ -138,22 +181,22 @@ class Grid {
     const startY = (cheight - this.height) / 2.0;
 
     // Top 3 boxes
-    this.boxes.add(new TouchBox(context, startX, startY, "br", "00"));
-    this.boxes.add(new TouchBox(context, startX + BOX_WIDTH + PADDING, startY, "br", "01"));
-    this.boxes.add(new TouchBox(context, startX + 2 * (BOX_WIDTH + PADDING), startY, "b", "02"));
+    this.boxes.add(new TouchBox(startX, startY, "br", "00"));
+    this.boxes.add(new TouchBox(startX + BOX_WIDTH + PADDING, startY, "br", "01"));
+    this.boxes.add(new TouchBox(startX + 2 * (BOX_WIDTH + PADDING), startY, "b", "02"));
 
     // Middle 3 boxes
-    this.boxes.add(new TouchBox(context, startX, startY + BOX_HEIGHT + PADDING, "br", "10"));
-    this.boxes.add(new TouchBox(context, startX + BOX_WIDTH + PADDING, startY + BOX_HEIGHT + PADDING, "br", "11"));
-    this.boxes.add(new TouchBox(context, startX + 2 * (BOX_WIDTH + PADDING), startY + BOX_HEIGHT + PADDING, "b", "12"));
+    this.boxes.add(new TouchBox(startX, startY + BOX_HEIGHT + PADDING, "br", "10"));
+    this.boxes.add(new TouchBox(startX + BOX_WIDTH + PADDING, startY + BOX_HEIGHT + PADDING, "br", "11"));
+    this.boxes.add(new TouchBox(startX + 2 * (BOX_WIDTH + PADDING), startY + BOX_HEIGHT + PADDING, "b", "12"));
 
     // Bottom 3 boxes
-    this.boxes.add(new TouchBox(context, startX, startY + 2 * (BOX_HEIGHT + PADDING), "r", "20"));
-    this.boxes.add(new TouchBox(context, startX + BOX_WIDTH + PADDING, startY + 2 * (BOX_HEIGHT + PADDING), "r", "21"));
-    this.boxes.add(new TouchBox(context, startX + 2 * (BOX_WIDTH + PADDING), startY + 2 * (BOX_HEIGHT + PADDING), "", "22"));
+    this.boxes.add(new TouchBox(startX, startY + 2 * (BOX_HEIGHT + PADDING), "r", "20"));
+    this.boxes.add(new TouchBox(startX + BOX_WIDTH + PADDING, startY + 2 * (BOX_HEIGHT + PADDING), "r", "21"));
+    this.boxes.add(new TouchBox(startX + 2 * (BOX_WIDTH + PADDING), startY + 2 * (BOX_HEIGHT + PADDING), "", "22"));
 
     for(let box of this.boxes) {
-      box.createBorders(this.color);
+      box.createBorders(context, color);
     }
   }
 
@@ -171,7 +214,7 @@ class Grid {
 (() => {
   const canvas = document.getElementById("game");
   const context = canvas.getContext("2d");
-  let grid = new Grid(300, 300, GRID_COLOR);
+  let grid = new Grid(300, 300);
   var start = null;
 
   function animate(step) {
