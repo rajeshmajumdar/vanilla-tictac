@@ -2,6 +2,7 @@
 Simple TicTacToe game written in JS without any dependencies.
 
 ## Quick setup
+
 ```console
 $ chromium index.html
 ```
