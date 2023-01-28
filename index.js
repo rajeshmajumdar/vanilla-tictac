@@ -19,6 +19,8 @@ const CIRCLE_RADIUS = 25.0;
 let CLICKED_ON = null;
 let CROSS_TURN = true;
 let CIRCLE_TURN = false;
+let CROSS_WON = false;
+let CIRCLE_WON = false;
 
 var MATRIX = [
   [0, 0, 0],
@@ -38,6 +40,7 @@ function fillLine(context, x, y, w, h, color, orientation) {
   }
   context.stroke();
 }
+
 
 class TouchBox {
   constructor(startX, startY, borders, identifier) {

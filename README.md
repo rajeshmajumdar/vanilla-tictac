@@ -8,6 +8,5 @@ $ chromium index.html
 
 ### TO-DOs
 - Better UI
-- Crosses & Dots
 - Game mechanics
 - Score
